@@ -1,8 +1,9 @@
 import re
 
+CENTER = 50
 VALOER_LIMITE = 500
 LIMITE_SAQUES = 3
-USUARIO_DEFAULT = ['name', 'cpf', 'endereco']
+AGENCIA = '0001'
 CONTA_DEFAULT = ['usuario', 'agencia', 'conta',
                  'saldo', 'extrato', 'numero_saque']
 usuarios = {}
@@ -33,16 +34,20 @@ def validarCPF(cpf: str) -> bool:
     return True
 
 
-def iniciarCriarUsuario():
+def iniciarCriarUsuario(invalido=False):
     global usuarios
+    sInvalido = ''
+    if invalido:
+        sInvalido = " (informe 's' para voltar ao Menu)"
 
-    usuario = dict.fromkeys(USUARIO_DEFAULT, "")
-
-    cpf = input("Informe o seu cpf: ")
+    cpf = input(f"Informe o seu cpf{sInvalido}: ")
 
     if not validarCPF(cpf):
         print("Operação falhou! O CPF informado é inválido.")
-        return iniciarCriarUsuario()
+        if cpf == 's':
+            return
+
+        return iniciarCriarUsuario(True)
 
     cpf = re.sub('[^0-9]', '', cpf)
 
@@ -65,6 +70,23 @@ def iniciarCriarUsuario():
 
 
 def iniciarCriarConta():
+    global contas
+
+    cpf = input("Informe o seu cpf: ")
+    if cpf not in usuarios.keys():
+        print("Operação falhou! O CPF informado não esta cadastrado.")
+        return
+
+    numeroConta = len(contas) + 1
+
+    contas[numeroConta] = {'usuario': cpf, 'conta': numeroConta,
+                           'agencia': AGENCIA, 'saldo': 0, 'extrato': [],
+                           'numero_saque': 0}
+
+    print("CONTA CRIADA COM SUCESSO".center(CENTER))
+    print(f"\nAgencia: {AGENCIA}")
+    print(f"Conta: {numeroConta}\n")
+
     return
 
 
@@ -110,6 +132,7 @@ def iniciarSaque():
 
 def main():
     print("".center(50, "_"))
+    print(" MENU ".center(CENTER, "-") + "\n")
     MENU = {'1': {'title': 'Criar Usuario', 'function': iniciarCriarUsuario},
             '2': {'title': 'Criar Conta', 'function': iniciarCriarConta},
             '3': {'title': 'Depositar', 'function': iniciarDepositar},
@@ -121,21 +144,21 @@ def main():
         title = item.get('title', '').upper()
         print(f"[{key}] - {title}")
 
-    opcao = input("=>")
+    opcao = input("\n=>")
 
     if opcao not in MENU.keys():
         print("Operação inválida, por favor selecione novamente a operação desejada.")
 
     if opcao in MENU.keys() and MENU[opcao].get('function', False):
-        print(MENU.get(opcao).get('title').upper().center(50, "-"))
+        print(MENU.get(opcao).get('title').upper().center(CENTER, "-"))
         MENU[opcao].get('function')()
 
     if opcao == "3":
         print("")
-        print("EXTRATO".center(50, "="))
+        print("EXTRATO".center(CENTER, "="))
         print("Não foram realizadas movimentações." if not extrato else extrato)
         print(f"\nSaldo: R$ {saldo:.2f}")
-        print("".center(50, "-"))
+        print("".center(CENTER, "-"))
 
     if opcao != "s":
         main()
