@@ -3,9 +3,9 @@ import re
 CENTER = 50
 VALOER_LIMITE = 500
 LIMITE_SAQUES = 3
+
 AGENCIA = '0001'
-CONTA_DEFAULT = ['usuario', 'agencia', 'conta',
-                 'saldo', 'extrato', 'numero_saque']
+
 usuarios = {'11235809609': {'nome': 'Lucas costa', 'cpf': '11235809609',
                             'endereco': 'topazio, 360 - pataf - para de minas/Mg'}}
 contas = {}
@@ -71,13 +71,22 @@ def iniciarCriarUsuario(invalido=False):
     return
 
 
+def validarUsuario(usuarios, /):
+    cpf = input("Informe o seu cpf: ")
+    if cpf not in usuarios.keys():
+        print("Operação falhou! O CPF informado não esta cadastrado.")
+        return False
+
+    cpf = re.sub('[^0-9]', '', cpf)
+    return cpf
+
+
 def iniciarCriarConta():
     global contas
     global usuarios
 
-    cpf = input("Informe o seu cpf: ")
-    if cpf not in usuarios.keys():
-        print("Operação falhou! O CPF informado não esta cadastrado.")
+    cpf = validarUsuario(usuarios)
+    if (not cpf):
         return
 
     numeroConta = len(contas) + 1
@@ -99,12 +108,10 @@ def listarContaUsuario():
     global contas
     global usuarios
 
-    cpf = input("Informe o seu cpf: ")
-    if cpf not in usuarios.keys():
-        print("Operação falhou! O CPF informado não esta cadastrado.")
+    cpf = validarUsuario(usuarios)
+    if (not cpf):
         return
 
-    cpf = re.sub('[^0-9]', '', cpf)
     nome = usuarios[cpf].get('nome')
 
     print(f"\nOlá {nome} sua(s) conta(s):")
@@ -123,18 +130,50 @@ def listarContaUsuario():
         print("Usuario não possui contas ativas")
 
 
-def iniciarDepositar():
-    global saldo
-    global extrato
+def contaMovimentar(contas):
+    agencia = input("Informe o sua agencia: ")
+    conta = int(input("Informe o sua conta: "))
 
-    valor = float(input("Informe o valor do depósito: "))
+    if agencia != AGENCIA or conta not in contas.keys():
+        print("Operação falhou! O Agencia ou Conta informado não esta cadastrado.")
+        return False
+
+    return contas[conta]
+
+
+def getInformarValor(tipo: str):
+
+    valor = float(input(f"Informe o valor do {tipo}: "))
 
     if valor <= 0:
         print("Operação falhou! O valor informado é inválido.")
-        return
+        return False
+
+    return valor
+
+
+def depositar(saldo, valor, extrato, /):
 
     saldo += valor
-    extrato += f"Depósito: R$ {valor:.2f}\n"
+    extrato.append({"tipo": "Depósito", "valor": valor})
+
+    return saldo, extrato
+
+
+def iniciarDepositar():
+    global contas
+    conta = contaMovimentar(contas)
+    if (not conta):
+        return
+
+    valor = getInformarValor('depositar')
+    if not valor:
+        return
+
+    saldo, extrato = depositar(conta.get('saldo'), valor, conta.get('extrato'))
+
+    conta['saldo'] = saldo
+    conta['extrato'] = extrato
 
 
 def iniciarSaque():
