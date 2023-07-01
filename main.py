@@ -6,7 +6,8 @@ LIMITE_SAQUES = 3
 AGENCIA = '0001'
 CONTA_DEFAULT = ['usuario', 'agencia', 'conta',
                  'saldo', 'extrato', 'numero_saque']
-usuarios = {}
+usuarios = {'11235809609': {'nome': 'Lucas costa', 'cpf': '11235809609',
+                            'endereco': 'topazio, 360 - pataf - para de minas/Mg'}}
 contas = {}
 
 
@@ -64,13 +65,15 @@ def iniciarCriarUsuario(invalido=False):
 
     endereco = f"{lagradouro}, {numero} - {bairo} - {cidade}/{sg}"
 
-    usuarios[cpf] = {'nome': nome, 'cpf': cpf, 'endereco': endereco}
+    usuarios[cpf] = {'nome': nome.upper(), 'cpf': cpf,
+                     'endereco': endereco.upper()}
     print(usuarios)
     return
 
 
 def iniciarCriarConta():
     global contas
+    global usuarios
 
     cpf = input("Informe o seu cpf: ")
     if cpf not in usuarios.keys():
@@ -83,11 +86,41 @@ def iniciarCriarConta():
                            'agencia': AGENCIA, 'saldo': 0, 'extrato': [],
                            'numero_saque': 0}
 
-    print("CONTA CRIADA COM SUCESSO".center(CENTER))
-    print(f"\nAgencia: {AGENCIA}")
+    nome = usuarios[cpf].get('nome')
+
+    print(f"\nOlá {nome} sua conta foi criada com sucesso")
+    print(f"Agencia: {AGENCIA}")
     print(f"Conta: {numeroConta}\n")
 
     return
+
+
+def listarContaUsuario():
+    global contas
+    global usuarios
+
+    cpf = input("Informe o seu cpf: ")
+    if cpf not in usuarios.keys():
+        print("Operação falhou! O CPF informado não esta cadastrado.")
+        return
+
+    cpf = re.sub('[^0-9]', '', cpf)
+    nome = usuarios[cpf].get('nome')
+
+    print(f"\nOlá {nome} sua(s) conta(s):")
+
+    semConta = True
+
+    for conta in contas.values():
+        if conta.get('usuario') == cpf:
+            semConta = False
+            print("".center(50, "_"))
+            print(f"Agencia: {conta.get('agencia')}")
+            print(f"Conta: {conta.get('conta')}")
+            print(f"Saldo: R${conta.get('saldo'):.2f}")
+
+    if semConta:
+        print("Usuario não possui contas ativas")
 
 
 def iniciarDepositar():
@@ -135,9 +168,10 @@ def main():
     print(" MENU ".center(CENTER, "-") + "\n")
     MENU = {'1': {'title': 'Criar Usuario', 'function': iniciarCriarUsuario},
             '2': {'title': 'Criar Conta', 'function': iniciarCriarConta},
-            '3': {'title': 'Depositar', 'function': iniciarDepositar},
-            '4': {'title': 'Sacar', 'function': iniciarSaque},
-            '5': {'title': 'Extrato', },
+            '3': {'title': 'Listar Conta', 'function': listarContaUsuario},
+            '4': {'title': 'Depositar', 'function': iniciarDepositar},
+            '5': {'title': 'Sacar', 'function': iniciarSaque},
+            '6': {'title': 'Extrato', },
             's': {'title': 'Sair'}}
 
     for key, item in MENU.items():
@@ -153,12 +187,12 @@ def main():
         print(MENU.get(opcao).get('title').upper().center(CENTER, "-"))
         MENU[opcao].get('function')()
 
-    if opcao == "3":
-        print("")
-        print("EXTRATO".center(CENTER, "="))
-        print("Não foram realizadas movimentações." if not extrato else extrato)
-        print(f"\nSaldo: R$ {saldo:.2f}")
-        print("".center(CENTER, "-"))
+    # if opcao == "3":
+    #     print("")
+    #     print("EXTRATO".center(CENTER, "="))
+    #     print("Não foram realizadas movimentações." if not extrato else extrato)
+    #     print(f"\nSaldo: R$ {saldo:.2f}")
+    #     print("".center(CENTER, "-"))
 
     if opcao != "s":
         main()
