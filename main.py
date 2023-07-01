@@ -219,6 +219,27 @@ def iniciarSaque():
     conta['numero_saques'] = numero_saques
 
 
+def getExtrato():
+    global contas
+    conta = contaMovimentar(contas)
+    if (not conta):
+        return
+
+    extratos = conta.get('extrato', [])
+    print("")
+    print("EXTRATO".center(CENTER, "="))
+    if not extratos:
+        print("Não foram realizadas movimentações.")
+
+    for extrato in extratos:
+        print('{:.<20}'.format(extrato.get('tipo') + " ") +
+              '{:.>30}'.format(f" R$ {extrato.get('valor'):.2f}"))
+    print("".center(CENTER, "-"))
+    print("\n" + '{:.<20}'.format("SALDO ") +
+          '{:.>30}'.format(f" R$ {conta.get('saldo',0):.2f}"))
+    print("".center(CENTER, "="))
+
+
 def main():
     print("".center(50, "_"))
     print(" MENU ".center(CENTER, "-") + "\n")
@@ -227,7 +248,7 @@ def main():
             '3': {'title': 'Listar Conta', 'function': listarContaUsuario},
             '4': {'title': 'Depositar', 'function': iniciarDepositar},
             '5': {'title': 'Sacar', 'function': iniciarSaque},
-            '6': {'title': 'Extrato', },
+            '6': {'title': 'Extrato', 'function': getExtrato},
             's': {'title': 'Sair'}}
 
     for key, item in MENU.items():
@@ -242,13 +263,6 @@ def main():
     if opcao in MENU.keys() and MENU[opcao].get('function', False):
         print(MENU.get(opcao).get('title').upper().center(CENTER, "-"))
         MENU[opcao].get('function')()
-
-    # if opcao == "3":
-    #     print("")
-    #     print("EXTRATO".center(CENTER, "="))
-    #     print("Não foram realizadas movimentações." if not extrato else extrato)
-    #     print(f"\nSaldo: R$ {saldo:.2f}")
-    #     print("".center(CENTER, "-"))
 
     if opcao != "s":
         main()
