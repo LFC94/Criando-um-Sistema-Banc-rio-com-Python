@@ -1,82 +1,271 @@
-separacao = "".center(50, "_")
+import re
 
-menu = separacao + """
-
-[d] Depositar
-[s] Sacar
-[e] Extrato
-[q] Sair
-
-=> """
-
+CENTER = 50
 VALOER_LIMITE = 500
 LIMITE_SAQUES = 3
-saldo = 0
-extrato = ""
-numero_saques = 0
+
+AGENCIA = '0001'
+
+usuarios = {'11235809609': {'nome': 'Lucas costa', 'cpf': '11235809609',
+                            'endereco': 'topazio, 360 - pataf - para de minas/Mg'}}
+contas = {}
 
 
-def depositar():
-    global saldo
-    global extrato
+def validarCPF(cpf: str) -> bool:
 
-    valor = float(input("Informe o valor do depósito: "))
+    # Obtém apenas os números do CPF, ignorando pontuações
+    numbers = [int(digit) for digit in cpf if digit.isdigit()]
+
+    # Verifica se o CPF possui 11 números ou se todos são iguais:
+    if len(numbers) != 11 or len(set(numbers)) == 1:
+        return False
+
+    # Validação do primeiro dígito verificador:
+    sum_of_products = sum(a*b for a, b in zip(numbers[0:9], range(10, 1, -1)))
+    expected_digit = (sum_of_products * 10 % 11) % 10
+    if numbers[9] != expected_digit:
+        return False
+
+    # Validação do segundo dígito verificador:
+    sum_of_products = sum(a*b for a, b in zip(numbers[0:10], range(11, 1, -1)))
+    expected_digit = (sum_of_products * 10 % 11) % 10
+    if numbers[10] != expected_digit:
+        return False
+
+    return True
+
+
+def iniciarCriarUsuario(invalido=False):
+    global usuarios
+    sInvalido = ''
+    if invalido:
+        sInvalido = " (informe 's' para voltar ao Menu)"
+
+    cpf = input(f"Informe o seu cpf{sInvalido}: ")
+
+    if not validarCPF(cpf):
+        print("Operação falhou! O CPF informado é inválido.")
+        if cpf == 's':
+            return
+
+        return iniciarCriarUsuario(True)
+
+    cpf = re.sub('[^0-9]', '', cpf)
+
+    if cpf in usuarios.keys():
+        print("Operação falhou! O CPF informado ja cadastrado.")
+        return
+
+    nome = input("Informe o seu nome: ")
+    lagradouro = input("Informe o seu lagradouro(rua, avenida ...): ")
+    numero = input("Informe o seu numero: ")
+    bairo = input("Informe o seu bairo: ")
+    cidade = input("Informe o seu cidade: ")
+    sg = input("Informe o seu estado(sigla): ")
+
+    endereco = f"{lagradouro}, {numero} - {bairo} - {cidade}/{sg}"
+
+    usuarios[cpf] = {'nome': nome.upper(), 'cpf': cpf,
+                     'endereco': endereco.upper()}
+    print(usuarios)
+    return
+
+
+def validarUsuario(usuarios, /):
+    cpf = input("Informe o seu cpf: ")
+    if cpf not in usuarios.keys():
+        print("Operação falhou! O CPF informado não esta cadastrado.")
+        return False
+
+    cpf = re.sub('[^0-9]', '', cpf)
+    return cpf
+
+
+def iniciarCriarConta():
+    global contas
+    global usuarios
+
+    cpf = validarUsuario(usuarios)
+    if (not cpf):
+        return
+
+    numeroConta = len(contas) + 1
+
+    contas[numeroConta] = {'usuario': cpf, 'conta': numeroConta,
+                           'agencia': AGENCIA, 'saldo': 0, 'extrato': [],
+                           'numero_saque': 0}
+
+    nome = usuarios[cpf].get('nome')
+
+    print(f"\nOlá {nome} sua conta foi criada com sucesso")
+    print(f"Agencia: {AGENCIA}")
+    print(f"Conta: {numeroConta}\n")
+
+    return
+
+
+def listarContaUsuario():
+    global contas
+    global usuarios
+
+    cpf = validarUsuario(usuarios)
+    if (not cpf):
+        return
+
+    nome = usuarios[cpf].get('nome')
+
+    print(f"\nOlá {nome} sua(s) conta(s):")
+
+    semConta = True
+
+    for conta in contas.values():
+        if conta.get('usuario') == cpf:
+            semConta = False
+            print("".center(50, "_"))
+            print(f"Agencia: {conta.get('agencia')}")
+            print(f"Conta: {conta.get('conta')}")
+            print(f"Saldo: R${conta.get('saldo'):.2f}")
+
+    if semConta:
+        print("Usuario não possui contas ativas")
+
+
+def contaMovimentar(contas):
+    agencia = input("Informe o sua agencia: ")
+    conta = int(input("Informe o sua conta: "))
+
+    if agencia != AGENCIA or conta not in contas.keys():
+        print("Operação falhou! O Agencia ou Conta informado não esta cadastrado.")
+        return False
+
+    return contas[conta]
+
+
+def getInformarValor(tipo: str):
+
+    valor = float(input(f"Informe o valor do {tipo}: "))
 
     if valor <= 0:
         print("Operação falhou! O valor informado é inválido.")
-        return
+        return False
+
+    return valor
+
+
+def depositar(saldo, valor, extrato, /):
 
     saldo += valor
-    extrato += f"Depósito: R$ {valor:.2f}\n"
+    extrato.append({"tipo": "Depósito", "valor": valor})
+
+    return saldo, extrato
 
 
-def sacar():
-    global saldo
-    global extrato
-    global numero_saques
-    valor = float(input("Informe o valor do saque: "))
-    if valor <= 0:
-        print("Operação falhou! O valor informado é inválido.")
+def iniciarDepositar():
+    global contas
+    conta = contaMovimentar(contas)
+    if (not conta):
         return
 
+    valor = getInformarValor('depositar')
+    if not valor:
+        return
+
+    saldo, extrato = depositar(conta.get('saldo'), valor, conta.get('extrato'))
+
+    conta['saldo'] = saldo
+    conta['extrato'] = extrato
+
+
+def sacar(*, saldo, valor, extrato, limite, numero_saques, limite_saques):
     if valor > saldo:
         print("Operação falhou! Você não tem saldo suficiente.")
-        return
+        return saldo, extrato
 
-    if valor > VALOER_LIMITE:
+    if valor > limite:
         print("Operação falhou! O valor do saque excede o limite.")
-        return
+        return saldo, extrato
 
-    if numero_saques >= LIMITE_SAQUES:
+    if numero_saques >= limite_saques:
         print("Operação falhou! Número máximo de saques excedido.")
-        return
+        return saldo, extrato
 
     saldo -= valor
-    extrato += f"Saque: R$ -{valor:.2f}\n"
-    numero_saques += 1
+    extrato.append({"tipo": "Saque", "valor": valor})
+
+    return saldo, extrato
 
 
-while True:
+def iniciarSaque():
+    global contas
+    conta = contaMovimentar(contas)
+    if (not conta):
+        return
 
-    opcao = input(menu)
+    valor = getInformarValor('sacar')
+    if not valor:
+        return
 
-    if opcao == "d":
-        depositar()
-        continue
+    numero_saques = conta.get('numero_saque') + 1
 
-    if opcao == "s":
-        sacar()
-        continue
+    saldo, extrato = sacar(saldo=conta.get('saldo'),
+                           valor=valor,
+                           extrato=conta.get('extrato'),
+                           numero_saques=numero_saques,
+                           limite=VALOER_LIMITE,
+                           limite_saques=LIMITE_SAQUES)
 
-    if opcao == "e":
-        print("")
-        print("EXTRATO".center(50, "="))
-        print("Não foram realizadas movimentações." if not extrato else extrato)
-        print(f"\nSaldo: R$ {saldo:.2f}")
-        print("".center(50, "-"))
-        continue
+    conta['saldo'] = saldo
+    conta['extrato'] = extrato
+    conta['numero_saques'] = numero_saques
 
-    if opcao == "q":
-        break
 
-    print("Operação inválida, por favor selecione novamente a operação desejada.")
+def getExtrato():
+    global contas
+    conta = contaMovimentar(contas)
+    if (not conta):
+        return
+
+    extratos = conta.get('extrato', [])
+    print("")
+    print("EXTRATO".center(CENTER, "="))
+    if not extratos:
+        print("Não foram realizadas movimentações.")
+
+    for extrato in extratos:
+        print('{:.<20}'.format(extrato.get('tipo') + " ") +
+              '{:.>30}'.format(f" R$ {extrato.get('valor'):.2f}"))
+    print("".center(CENTER, "-"))
+    print("\n" + '{:.<20}'.format("SALDO ") +
+          '{:.>30}'.format(f" R$ {conta.get('saldo',0):.2f}"))
+    print("".center(CENTER, "="))
+
+
+def main():
+    print("".center(50, "_"))
+    print(" MENU ".center(CENTER, "-") + "\n")
+    MENU = {'1': {'title': 'Criar Usuario', 'function': iniciarCriarUsuario},
+            '2': {'title': 'Criar Conta', 'function': iniciarCriarConta},
+            '3': {'title': 'Listar Conta', 'function': listarContaUsuario},
+            '4': {'title': 'Depositar', 'function': iniciarDepositar},
+            '5': {'title': 'Sacar', 'function': iniciarSaque},
+            '6': {'title': 'Extrato', 'function': getExtrato},
+            's': {'title': 'Sair'}}
+
+    for key, item in MENU.items():
+        title = item.get('title', '').upper()
+        print(f"[{key}] - {title}")
+
+    opcao = input("\n=>")
+
+    if opcao not in MENU.keys():
+        print("Operação inválida, por favor selecione novamente a operação desejada.")
+
+    if opcao in MENU.keys() and MENU[opcao].get('function', False):
+        print(MENU.get(opcao).get('title').upper().center(CENTER, "-"))
+        MENU[opcao].get('function')()
+
+    if opcao != "s":
+        main()
+
+
+main()
