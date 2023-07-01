@@ -176,30 +176,47 @@ def iniciarDepositar():
     conta['extrato'] = extrato
 
 
-def iniciarSaque():
-    global saldo
-    global extrato
-    global numero_saques
-    valor = float(input("Informe o valor do saque: "))
-    if valor <= 0:
-        print("Operação falhou! O valor informado é inválido.")
-        return
-
+def sacar(*, saldo, valor, extrato, limite, numero_saques, limite_saques):
     if valor > saldo:
         print("Operação falhou! Você não tem saldo suficiente.")
-        return
+        return saldo, extrato
 
-    if valor > VALOER_LIMITE:
+    if valor > limite:
         print("Operação falhou! O valor do saque excede o limite.")
-        return
+        return saldo, extrato
 
-    if numero_saques >= LIMITE_SAQUES:
+    if numero_saques >= limite_saques:
         print("Operação falhou! Número máximo de saques excedido.")
-        return
+        return saldo, extrato
 
     saldo -= valor
-    extrato += f"Saque: R$ -{valor:.2f}\n"
-    numero_saques += 1
+    extrato.append({"tipo": "Saque", "valor": valor})
+
+    return saldo, extrato
+
+
+def iniciarSaque():
+    global contas
+    conta = contaMovimentar(contas)
+    if (not conta):
+        return
+
+    valor = getInformarValor('sacar')
+    if not valor:
+        return
+
+    numero_saques = conta.get('numero_saque') + 1
+
+    saldo, extrato = sacar(saldo=conta.get('saldo'),
+                           valor=valor,
+                           extrato=conta.get('extrato'),
+                           numero_saques=numero_saques,
+                           limite=VALOER_LIMITE,
+                           limite_saques=LIMITE_SAQUES)
+
+    conta['saldo'] = saldo
+    conta['extrato'] = extrato
+    conta['numero_saques'] = numero_saques
 
 
 def main():
