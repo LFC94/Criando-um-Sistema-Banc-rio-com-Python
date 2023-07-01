@@ -6,8 +6,7 @@ LIMITE_SAQUES = 3
 
 AGENCIA = '0001'
 
-usuarios = {'11235809609': {'nome': 'Lucas costa', 'cpf': '11235809609',
-                            'endereco': 'topazio, 360 - pataf - para de minas/Mg'}}
+usuarios = {}
 contas = {}
 
 
