@@ -1,13 +1,3 @@
-separacao = "".center(50, "_")
-
-menu = separacao + """
-
-[d] Depositar
-[s] Sacar
-[e] Extrato
-[q] Sair
-
-=> """
 
 VALOER_LIMITE = 500
 LIMITE_SAQUES = 3
@@ -56,27 +46,34 @@ def sacar():
     numero_saques += 1
 
 
-while True:
+def main():
+    print("".center(50, "_"))
+    MENU = {'1': {'title': 'Depositar', 'function': depositar},
+            '2': {'title': 'Sacar', 'function': sacar},
+            '3': {'title': 'Extrato', },
+            's': {'title': 'Sair'}}
 
-    opcao = input(menu)
+    for key, item in MENU.items():
+        title = item.get('title', '').upper()
+        print(f"[{key}] - {title}")
+    opcao = input("=>")
+    print("".center(50, "_"))
 
-    if opcao == "d":
-        depositar()
-        continue
+    if opcao not in MENU.keys():
+        print("Operação inválida, por favor selecione novamente a operação desejada.")
 
-    if opcao == "s":
-        sacar()
-        continue
+    if opcao in MENU.keys() and MENU[opcao].get('function', False):
+        MENU[opcao].get('function')()
 
-    if opcao == "e":
+    if opcao == "3":
         print("")
         print("EXTRATO".center(50, "="))
         print("Não foram realizadas movimentações." if not extrato else extrato)
         print(f"\nSaldo: R$ {saldo:.2f}")
         print("".center(50, "-"))
-        continue
 
-    if opcao == "q":
-        break
+    if opcao != "s":
+        main()
 
-    print("Operação inválida, por favor selecione novamente a operação desejada.")
+
+main()
